@@ -94,6 +94,55 @@ app.get('/loans/check_availability', async (req, res) => {
   }
 });
 
+// NUEVA RUTA 1: Buscar o registrar un usuario por name y email
+app.post('/users/find_or_create', async (req, res) => {
+  const { name, email } = req.body;
+
+  try {
+    // Verificar si el usuario ya está registrado
+    const userResult = await pool.query('SELECT id FROM users WHERE name = $1 AND email = $2', [name, email]);
+
+    if (userResult.rows.length > 0) {
+      // El usuario ya existe, devolver el user_id
+      const user_id = userResult.rows[0].id;
+      res.status(200).send({ user_id });
+    } else {
+      // El usuario no existe, crearlo y devolver el user_id
+      const newUser = await pool.query(
+        'INSERT INTO users (name, email) VALUES ($1, $2) RETURNING id',
+        [name, email]
+      );
+      const user_id = newUser.rows[0].id;
+      res.status(201).send({ user_id });
+    }
+
+  } catch (error) {
+    console.error('Error finding or creating user:', error);
+    res.status(500).send({ error: 'An error occurred while processing the request' });
+  }
+});
+
+// NUEVA RUTA 2: Obtener name y email de un usuario por id
+app.get('/users/:id', async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    // Buscar el usuario por ID
+    const userResult = await pool.query('SELECT name, email FROM users WHERE id = $1', [id]);
+
+    if (userResult.rows.length > 0) {
+      const { name, email } = userResult.rows[0];
+      res.status(200).send({ name, email });
+    } else {
+      res.status(404).send({ error: 'User not found' });
+    }
+
+  } catch (error) {
+    console.error('Error fetching user:', error);
+    res.status(500).send({ error: 'An error occurred while processing the request' });
+  }
+});
+
 // Escuchar en el puerto 8002
 app.listen(8002, () => {
   console.log('Microservicio 2 (servicio_prestamos) está corriendo en el puerto 8002');
