@@ -143,6 +143,29 @@ app.get('/users/:id', async (req, res) => {
   }
 });
 
+// NUEVA RUTA: Obtener user_id por name y email
+app.get('/users/get_user_id', async (req, res) => {
+    const { name, email } = req.query;  // Los parámetros se pasan como query en lugar de body
+  
+    try {
+      // Verificar si el usuario ya está registrado
+      const userResult = await pool.query('SELECT id FROM users WHERE name = $1 AND email = $2', [name, email]);
+  
+      if (userResult.rows.length > 0) {
+        // El usuario existe, devolver el user_id
+        const user_id = userResult.rows[0].id;
+        res.status(200).send({ user_id });
+      } else {
+        // El usuario no fue encontrado
+        res.status(404).send({ error: 'User not found' });
+      }
+  
+    } catch (error) {
+      console.error('Error fetching user:', error);
+      res.status(500).send({ error: 'An error occurred while processing the request' });
+    }
+  });
+
 // Escuchar en el puerto 8002
 app.listen(8002, () => {
   console.log('Microservicio 2 (servicio_prestamos) está corriendo en el puerto 8002');
